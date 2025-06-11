@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 이전 코드는 모두 동일합니다... (상단 설정 및 함수들)
     const API_KEY = '8fea9c17c3a7472f9884b37fee2e2959';
     const BASE_URL = '/api';
 
@@ -18,6 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
         prscPesticide: {
             dipNm: '병해충명', agchmNm: '농약명', prscCn: '처방내용', sprayDate: '살포일'
         }
+    };
+    // ★★★ 작목별 병해충 목록 데이터 추가 ★★★
+    const pestOptionsByCrop = {
+        'K00001': [ // 콩
+            { value: 'D00001', text: '톱다리개미허리노린재' },
+            { value: 'D00002', text: '세균병' }
+        ],
+        'K00003': [ // 벼
+            { value: 'D00006', text: '도열병' },
+            { value: 'D00009', text: '이화명나방' },
+            { value: 'D00011', text: '세균벼알마름병' },
+            { value: 'D00015', text: '벼멸구' }
+        ]
     };
 
     const chartDatasetProps = {
@@ -40,6 +54,24 @@ document.addEventListener('DOMContentLoaded', () => {
     ['weather-date', 'begin-date-daily', 'until-date-daily', 'spray-date'].forEach(id => {
         document.getElementById(id).value = today;
     });
+
+    // --- 2. 공통 헬퍼 함수 ---
+
+    // ★★★ 병해충 드롭다운 업데이트 함수 추가 ★★★
+    function updatePestDropdown(selectedCropCode) {
+        const pestDropdown = document.getElementById('dipCd');
+        pestDropdown.innerHTML = ''; // 기존 옵션들을 모두 제거
+
+        const pests = pestOptionsByCrop[selectedCropCode];
+        if (pests) {
+            pests.forEach(pest => {
+                const option = document.createElement('option');
+                option.value = pest.value;
+                option.textContent = pest.text;
+                pestDropdown.appendChild(option);
+            });
+        }
+    }
 
     function downloadExcel(data, filename, mapping) {
         if (!data || (Array.isArray(data) && data.length === 0)) { alert('다운로드할 데이터가 없습니다.'); return; }
@@ -127,6 +159,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return await response.json();
     }
 
+    // --- 3. 단계별 이벤트 리스너 등록 ---
+
+    // ★★★ 페이지 로드 시, 그리고 작목 선택 변경 시 병해충 목록 업데이트 ★★★
+    const cropDropdown = document.getElementById('kidofcomdtyCd');
+    cropDropdown.addEventListener('change', (event) => {
+        updatePestDropdown(event.target.value);
+    });
+    // 페이지가 처음 로드될 때, 기본 선택된 작목('콩')에 맞는 병해충 목록을 채워줍니다.
+    updatePestDropdown(cropDropdown.value);
+
+    // --- 단계 1, 2, 3 이벤트 리스너는 이전과 동일합니다. ---
     // --- 단계 1: 시간별 날씨 ---
     const step1Btn = document.getElementById('btn-step1');
     const step1ChartOptions = document.getElementById('chart-options-step1');
@@ -187,25 +230,54 @@ document.addEventListener('DOMContentLoaded', () => {
         commonParams.sprayYmd = document.getElementById('spray-date').value.replace(/-/g, '');
         const url = `${BASE_URL}/agchm?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&dipCd=${commonParams.dipCd}&sprayYmd=${commonParams.sprayYmd}`;
         try {
-            rcmdPesticideData = await fetchData(url);
-            document.getElementById('result-step4').innerHTML = `<p><strong>농약살포지수:</strong> ${rcmdPesticideData.agchmSprayIdex}</p><div id="rcmd-table-container"></div>`;
-            const headers = Object.keys(nameMappings.rcmdPesticide).map(key => ({ title: nameMappings.rcmdPesticide[key], key: key }));
-            renderTable('rcmd-table-container', headers, rcmdPesticideData.agchmSprayRcmdtnList);
-            document.getElementById('excel-step4').disabled = false;
-            document.getElementById('step-5').classList.remove('hidden');
+            const responseData = await fetchData(url);
+            if (responseData && Array.isArray(responseData) && responseData.length > 0) {
+                rcmdPesticideData = responseData[0];
+                document.getElementById('result-step4').innerHTML = `<p><strong>농약살포지수:</strong> ${rcmdPesticideData.agchmSprayIdex}</p><div id="rcmd-table-container"></div>`;
+                if (rcmdPesticideData.agchmSprayRcmdtnList && Array.isArray(rcmdPesticideData.agchmSprayRcmdtnList) && rcmdPesticideData.agchmSprayRcmdtnList.length > 0) {
+                    const headers = Object.keys(nameMappings.rcmdPesticide).map(key => ({ title: nameMappings.rcmdPesticide[key], key: key }));
+                    renderTable('rcmd-table-container', headers, rcmdPesticideData.agchmSprayRcmdtnList);
+                } else {
+                    document.getElementById('rcmd-table-container').innerHTML = "<p>추천된 농약 정보가 없습니다.</p>";
+                }
+                document.getElementById('excel-step4').disabled = false;
+                document.getElementById('step-5').classList.remove('hidden');
+            } else {
+                document.getElementById('result-step4').innerHTML = '<p>조회된 추천 농약 데이터가 없습니다.</p>';
+                rcmdPesticideData = {};
+            }
         } catch (error) { document.getElementById('result-step4').innerText = '데이터 조회 실패: ' + error.message; }
     });
-    document.getElementById('excel-step4').addEventListener('click', () => downloadExcel(rcmdPesticideData.agchmSprayRcmdtnList, 'recommended_pesticide.xlsx', nameMappings.rcmdPesticide));
+    document.getElementById('excel-step4').addEventListener('click', () => {
+        if (rcmdPesticideData && rcmdPesticideData.agchmSprayRcmdtnList) {
+            downloadExcel(rcmdPesticideData.agchmSprayRcmdtnList, 'recommended_pesticide.xlsx', nameMappings.rcmdPesticide)
+        } else {
+            alert('다운로드할 추천 농약 목록이 없습니다.');
+        }
+    });
 
-    // --- 단계 5: 농약 사용 처방 ---
+    // --- ★★★ 단계 5: 농약 사용 처방 (수정된 부분) ★★★ ---
     document.getElementById('btn-step5').addEventListener('click', async () => {
         commonParams.agchmNm = document.getElementById('agchmNm').value;
         const url = `${BASE_URL}/adwTotal?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&dipCd=${commonParams.dipCd}&sprayYmd=${commonParams.sprayYmd}&agchmNm=${commonParams.agchmNm}`;
         try {
-            prscPesticideData = await fetchData(url);
-            document.getElementById('result-step5').innerHTML = `<p><strong>처방내용:</strong> ${prscPesticideData.prscCn}</p>`;
-            document.getElementById('excel-step5').disabled = false;
-        } catch (error) { document.getElementById('result-step5').innerText = '데이터 조회 실패: ' + error.message; }
+            // API 응답은 배열이므로, responseData 변수에 우선 저장합니다.
+            const responseData = await fetchData(url);
+
+            // ★★★ FIX: API 응답이 배열이고, 비어있지 않은지 확인합니다. ★★★
+            if (responseData && Array.isArray(responseData) && responseData.length > 0) {
+                // 배열의 첫 번째 요소를 실제 데이터로 사용합니다.
+                prscPesticideData = responseData[0];
+                document.getElementById('result-step5').innerHTML = `<p><strong>처방내용:</strong> ${prscPesticideData.prscCn || '처방 내용이 없습니다.'}</p>`;
+                document.getElementById('excel-step5').disabled = false;
+            } else {
+                // API가 빈 배열 또는 유효하지 않은 데이터를 반환한 경우
+                document.getElementById('result-step5').innerHTML = '<p>조회된 처방 내용이 없습니다.</p>';
+                prscPesticideData = {}; // 데이터 초기화
+            }
+        } catch (error) {
+            document.getElementById('result-step5').innerText = '데이터 조회 실패: ' + error.message;
+        }
     });
     document.getElementById('excel-step5').addEventListener('click', () => downloadExcel(prscPesticideData, 'pesticide_prescription.xlsx', nameMappings.prscPesticide));
 });

@@ -70,7 +70,15 @@
 
         <div class="step hidden" id="step-3">
              <div class="step-header"><span class="step-number">3</span><h2>병해충 위험도 예측 조회</h2></div>
-             <div class="form-grid"><div class="form-group"><label for="kidofcomdtyCd">작목코드:</label><input type="text" id="kidofcomdtyCd" value="K00001"></div></div>
+             <div class="form-grid">
+                <div class="form-group">
+                    <label for="kidofcomdtyCd">작목 선택:</label>
+                    <select id="kidofcomdtyCd">
+                        <option value="K00001">콩</option>
+                        <option value="K00003">벼</option>
+                    </select>
+                </div>
+            </div>
             <button id="btn-step3" class="glow-on-hover">3. 병해충 위험도 조회</button>
             <div class="result-box" id="result-step3"></div>
             <button id="excel-step3" class="excel-btn" disabled>엑셀 다운로드</button>
@@ -79,7 +87,10 @@
         <div class="step hidden" id="step-4">
             <div class="step-header"><span class="step-number">4</span><h2>추천 농약 조회</h2></div>
             <div class="form-grid">
-                <div class="form-group"><label for="dipCd">병해충코드:</label><input type="text" id="dipCd" value="D00001"></div>
+                <div class="form-group">
+                    <label for="dipCd">병해충 선택:</label>
+                    <select id="dipCd"></select>
+                </div>
                 <div class="form-group"><label for="spray-date">살포일자:</label><input type="date" id="spray-date"></div>
             </div>
             <button id="btn-step4" class="glow-on-hover">4. 추천 농약 조회</button>
