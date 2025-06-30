@@ -174,12 +174,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const step1Btn = document.getElementById('btn-step1');
     const step1ChartOptions = document.getElementById('chart-options-step1');
     step1Btn.addEventListener('click', async () => {
-        commonParams.latitude = document.getElementById('latitude').value;
-        commonParams.longitude = document.getElementById('longitude').value;
+        // 드롭다운에서 '위도,경도' 형태의 값을 가져옵니다.
+        const selectedLocation = document.getElementById('location-select').value;
+        // 쉼표(,)를 기준으로 분리하여 위도와 경도 변수에 할당합니다.
+        const [latitude, longitude] = selectedLocation.split(',');
+
+        // 공통 파라미터 객체에 저장하여 다른 단계에서도 사용할 수 있도록 합니다.
+        commonParams.latitude = latitude;
+        commonParams.longitude = longitude;
+
         const date = document.getElementById('weather-date').value.replace(/-/g, '');
         const beginTime = document.getElementById('begin-time').value.replace(':', '') + '00';
         const untilTime = document.getElementById('until-time').value.replace(':', '') + '00';
         const url = `${BASE_URL}/weather/hrly?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&begin=${date}${beginTime}&until=${date}${untilTime}`;
+
         try {
             hourlyData = await fetchData(url);
             renderChart('result-step1', 'hourlyChart', 'hrly-chart-options', hourlyData);
@@ -194,19 +202,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 단계 2: 일별 날씨 ---
     const step2Btn = document.getElementById('btn-step2');
     const step2ChartOptions = document.getElementById('chart-options-step2');
+    const accumulatedTempEl = document.getElementById('accumulated-temp'); // 적산온도 표시 요소
+
     step2Btn.addEventListener('click', async () => {
         const begin = document.getElementById('begin-date-daily').value.replace(/-/g, '');
         const until = document.getElementById('until-date-daily').value.replace(/-/g, '');
-        commonParams.beginDate = begin; commonParams.untilDate = until;
+        commonParams.beginDate = begin;
+        commonParams.untilDate = until;
         const url = `${BASE_URL}/weather/daly?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&begin=${begin}&until=${until}`;
+
+        // 조회 시작 전, 적산온도 초기화
+        accumulatedTempEl.textContent = '적산온도: 계산중...';
+
         try {
             dailyData = await fetchData(url);
+
+            // ★★★ 적산온도 계산 로직 추가 ★★★
+            const accumulatedTemp = dailyData.reduce((sum, day) => {
+                const temp = parseFloat(day.avgTp); // 문자열일 수 있는 온도를 숫자로 변환
+                if (temp >= 10) { // 온도가 10도 이상일 때만 더함
+                    return sum + temp;
+                }
+                return sum; // 10도 미만이면 더하지 않고 기존 합계를 반환
+            }, 0); // 합계의 초기값은 0
+
+            // 계산된 적산온도를 화면에 표시 (소수점 첫째 자리까지)
+            accumulatedTempEl.textContent = `적산온도: ${accumulatedTemp.toFixed(1)} °C`;
+
+            // 차트 렌더링 및 다음 단계 UI 활성화
             renderChart('result-step2', 'dailyChart', 'daly-chart-options', dailyData);
             step2ChartOptions.classList.remove('hidden');
             document.getElementById('excel-step2').disabled = false;
             document.getElementById('step-3').classList.remove('hidden');
-        } catch (error) { document.getElementById('result-step2').innerText = '데이터 조회 실패: ' + error.message; }
+        } catch (error) {
+            document.getElementById('result-step2').innerText = '데이터 조회 실패: ' + error.message;
+            accumulatedTempEl.textContent = '적산온도: 계산 실패';
+        }
     });
+
     step2ChartOptions.addEventListener('change', () => renderChart('result-step2', 'dailyChart', 'daly-chart-options', dailyData));
     document.getElementById('excel-step2').addEventListener('click', () => downloadExcel(dailyData, 'daily_weather.xlsx', nameMappings.weather));
 

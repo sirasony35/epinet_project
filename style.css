@@ -47,6 +47,7 @@ body {
     margin-bottom: 25px;
     box-shadow: var(--shadow);
     transition: all 0.3s ease-in-out;
+    position: relative; /* ★★★ 적산온도 위치 지정을 위한 기준점 설정 ★★★ */
 }
 .step.hidden { display: none; }
 
@@ -105,6 +106,20 @@ body {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
+}
+
+/* ★★★ 적산온도 표시 영역 스타일 추가 ★★★ */
+.summary-display {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background-color: #e9ecef;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: var(--secondary-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 button {
