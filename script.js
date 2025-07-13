@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 날짜 기본값 설정
     const today = new Date().toISOString().split('T')[0];
-    ['weather-date', 'begin-date-daily', 'until-date-daily', 'spray-date'].forEach(id => {
+    ['weather-date', 'begin-date-daily', 'until-date-daily', 'spray-date', 'begin-date-pest', 'until-date-pest'].forEach(id => {
         document.getElementById(id).value = today;
     });
 
@@ -202,17 +202,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // 단계 3: 병해충 위험도
     document.getElementById('btn-step3').addEventListener('click', async () => {
         commonParams.kidofcomdtyId = document.getElementById('kidofcomdtyId').value;
-        const url = `${BASE_URL}/dip/riskStepOttc?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&kidofcomdtyId=${commonParams.kidofcomdtyId}&begin=${commonParams.beginDate}&until=${commonParams.untilDate}`;
+
+        // ★★★ 2단계의 commonParams 대신 3단계의 날짜 입력값을 직접 가져와 사용 ★★★
+        const beginDate = document.getElementById('begin-date-pest').value.replace(/-/g, '');
+        const untilDate = document.getElementById('until-date-pest').value.replace(/-/g, '');
+
+        // URL 생성 시 새로 가져온 날짜 변수를 사용
+        const url = `${BASE_URL}/dip/riskStepOttc?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&kidofcomdtyId=${commonParams.kidofcomdtyId}&begin=${beginDate}&until=${untilDate}`;
         try {
             pestRiskData = await fetchData(url);
             const headers = Object.keys(nameMappings.pestRisk).map(key => ({ title: nameMappings.pestRisk[key], key: key }));
             renderTable('result-step3', headers, pestRiskData);
             document.getElementById('excel-step3').disabled = false;
             document.getElementById('step-4').classList.remove('hidden');
-        } catch (error) { document.getElementById('result-step3').innerText = '데이터 조회 실패: ' + error.message; }
+        } catch (error) {
+            document.getElementById('result-step3').innerText = '데이터 조회 실패: ' + error.message;
+        }
     });
     document.getElementById('excel-step3').addEventListener('click', () => downloadExcel(pestRiskData, 'pest_risk.xlsx', nameMappings.pestRisk));
-
     // 단계 4: 추천 농약
     document.getElementById('btn-step4').addEventListener('click', async () => {
         commonParams.dipCd = document.getElementById('dipCd').value;
