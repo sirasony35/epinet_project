@@ -47,7 +47,7 @@ body {
     margin-bottom: 25px;
     box-shadow: var(--shadow);
     transition: all 0.3s ease-in-out;
-    position: relative; /* ★★★ 적산온도 위치 지정을 위한 기준점 설정 ★★★ */
+    position: relative;
 }
 .step.hidden { display: none; }
 
@@ -77,38 +77,6 @@ body {
     font-size: 1.5em;
 }
 
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
-}
-.form-group label {
-    font-weight: 500;
-    margin-bottom: 5px;
-    font-size: 0.9em;
-}
-/* ★★★ .form-group select 추가 ★★★ */
-.form-group input,
-.form-group select {
-    padding: 10px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 1em;
-    width: 100%;
-    box-sizing: border-box; /* 패딩과 테두리가 너비에 포함되도록 설정 */
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-/* ★★★ .form-group select:focus 추가 ★★★ */
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
-}
-
-/* ★★★ 적산온도 표시 영역 스타일 추가 ★★★ */
 .summary-display {
     position: absolute;
     top: 30px;
@@ -120,6 +88,39 @@ body {
     font-weight: 500;
     color: var(--secondary-color);
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+.form-group label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+.form-group input,
+.form-group select {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 1em;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
 }
 
 button {
@@ -211,3 +212,37 @@ th { background-color: #e9ecef; }
     background-color: #e0e5e9;
 }
 .chart-options.hidden { display: none; }
+
+.prescription-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+}
+.prescription-card h3 {
+    font-size: 1.2em;
+    color: var(--primary-color);
+    margin: 0 0 10px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+.prescription-card p {
+    margin: 0 0 15px 0;
+    line-height: 1.7;
+}
+.prescription-card .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+.info-grid div {
+    font-size: 0.95em;
+}
+.info-grid strong {
+    color: var(--secondary-color);
+    display: block;
+    margin-bottom: 4px;
+}

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Python 3.11.2 WSL (Ubuntu-20.04): (/home/sangho/.pyenv/versions/3.11.2/envs/python311/bin/python3)" />
+    <option name="sdkName" value="epinet_project" />
   </component>
 </project>

@@ -103,26 +103,33 @@
             <button id="excel-step3" class="excel-btn" disabled>엑셀 다운로드</button>
         </div>
 
-        <div class="step hidden" id="step-4">
+       <div class="step hidden" id="step-4">
             <div class="step-header"><span class="step-number">4</span><h2>추천 농약 조회</h2></div>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="dipCd">병해충 선택:</label>
                     <select id="dipCd"></select>
                 </div>
-                <div class="form-group"><label for="spray-date">살포일자:</label><input type="date" id="spray-date"></div>
+                <div class="form-group">
+                    <label for="agchm-select">농약 선택:</label>
+                    <select id="agchm-select"></select>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="spray-date">살포예정일자:</label>
+                    <input type="date" id="spray-date">
+                </div>
             </div>
             <button id="btn-step4" class="glow-on-hover">4. 추천 농약 조회</button>
             <div class="result-box" id="result-step4"></div>
-            <button id="excel-step4" class="excel-btn" disabled>엑셀 다운로드</button>
+            <button id="excel-step4" class="excel-btn" disabled>추천 목록 엑셀 다운로드</button>
         </div>
 
         <div class="step hidden" id="step-5">
-            <div class="step-header"><span class="step-number">5</span><h2>농약 사용 처방 조회</h2></div>
-            <div class="form-grid"><div class="form-group"><label for="agchmNm">농약명:</label><input type="text" id="agchmNm" value="agchm1"></div></div>
-            <button id="btn-step5" class="glow-on-hover">5. 농약 처방 조회</button>
+            <div class="step-header"><span class="step-number">5</span><h2>상세 처방전 조회</h2></div>
+            <p>4단계에서 선택하신 조건으로 상세 처방전을 조회합니다.</p>
+            <button id="btn-step5" class="glow-on-hover">5. 상세 처방전 조회</button>
             <div class="result-box" id="result-step5"></div>
-            <button id="excel-step5" class="excel-btn" disabled>엑셀 다운로드</button>
+            <button id="excel-step5" class="excel-btn" disabled>처방전 엑셀 다운로드</button>
         </div>
     </div>
     <script src="script.js"></script>
