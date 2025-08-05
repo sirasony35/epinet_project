@@ -219,30 +219,39 @@ th { background-color: #e9ecef; }
     padding: 20px;
     margin-top: 10px;
 }
-.prescription-card h3 {
-    font-size: 1.2em;
-    color: var(--primary-color);
-    margin: 0 0 10px 0;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
-}
 .prescription-card p {
-    margin: 0 0 15px 0;
+    margin: 0;
     line-height: 1.7;
+    white-space: pre-wrap;
 }
-.prescription-card .info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
+
+.help-text {
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-top: 8px;
+    margin-bottom: 0;
 }
-.info-grid div {
-    font-size: 0.95em;
+
+.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
-.info-grid strong {
+
+.clickable-row:hover {
+    background-color: #e9ecef;
+}
+
+#prescription-container {
+    margin-top: 25px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+#prescription-container h3 {
     color: var(--secondary-color);
-    display: block;
-    margin-bottom: 4px;
+    margin-bottom: 15px;
+}
+
+#prescription-container.hidden {
+    display: none;
 }

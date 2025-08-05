@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // API 호출을 위한 기본 정보
     const API_KEY = '8fea9c17c3a7472f9884b37fee2e2959';
     const BASE_URL = '/api';
 
+    // 엑셀 컬럼명과 API 코드명을 매핑
     const nameMappings = {
         weather: {
             date: '측정일시', avgTp: '평균 기온(℃)', hghstTp: '최고 기온(℃)', lowstTp: '최저 기온(℃)',
@@ -17,12 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
             dilutUnit: '희석배수/사용량', useSuittime: '사용시기', useNum: '사용횟수'
         },
         prscPesticide: {
-            prscTitle: '처방전 제목', prscExpln: '처방전 설명', agchmNm: '농약명',
-            agchmUse: '농약 사용량', warnExpln: '주의사항', sky: '날씨', hghstTp: '예상 최고기온(℃)',
-            hm: '예상 습도(%)', rn: '예상 강수량(mm)', avgWs: '예상 풍속(m/s)', totalExpln: '종합의견'
+            spotAddr: '주소', sprayDate: '살포일', dipNm: '병해충명',
+            agchmNm: '농약명', prscCn: '처방내용'
         }
     };
 
+    // 차트 데이터 속성 정의
     const chartDatasetProps = {
         avgTp: { label: '평균 기온(℃)', borderColor: '#e63946', yAxisID: 'yTemp' },
         hghstTp: { label: '최고 기온(℃)', borderColor: '#f77f00', yAxisID: 'yTemp' },
@@ -35,20 +37,23 @@ document.addEventListener('DOMContentLoaded', () => {
         eptnQy: { label: '증발산량(mm)', borderColor: '#90e0ef', yAxisID: 'yMm', type: 'bar' },
     };
 
+    // 전역 변수 선언
     let pesticideInfo = [];
     let commonParams = {};
     let hourlyData = [], dailyData = [], pestRiskData = [], rcmdPesticideData = {}, prscPesticideData = {};
     let chartInstances = {};
 
+    // 날짜 기본값 설정
     const today = new Date().toISOString().split('T')[0];
     ['weather-date', 'begin-date-daily', 'until-date-daily', 'spray-date', 'begin-date-pest', 'until-date-pest'].forEach(id => {
         document.getElementById(id).value = today;
     });
 
+    // CSV 파일을 fetch하고 파싱하여 pesticideInfo 데이터를 만드는 함수
     async function loadPesticideInfo() {
         try {
             const response = await fetch('/농약정보.csv');
-            if (!response.ok) throw new Error('농약정보.csv 파일을 불러오는 데 실패했습니다.');
+            if (!response.ok) throw new Error('농약정보_수정.csv 파일을 불러오는 데 실패했습니다.');
             const csvText = await response.text();
             const lines = csvText.trim().split(/\r?\n/);
             pesticideInfo = lines.slice(1).map(line => {
@@ -67,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 선택된 작목에 따라 병해충 드롭다운을 업데이트하는 함수
     function updatePestDropdown(selectedCropName) {
         const pestDropdown = document.getElementById('dipCd');
         pestDropdown.innerHTML = '';
@@ -85,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 선택된 병해충에 따라 농약 드롭다운을 업데이트하는 함수
     function updatePesticideDropdown(selectedPestCode) {
         const pesticideDropdown = document.getElementById('agchm-select');
         pesticideDropdown.innerHTML = '';
@@ -100,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 엑셀 다운로드 함수
     function downloadExcel(data, filename, mapping) {
         if (!data || (Array.isArray(data) && data.length === 0)) { alert('다운로드할 데이터가 없습니다.'); return; }
         const dataArray = Array.isArray(data) ? data : [data];
@@ -114,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(workbook, filename);
     }
 
+    // 차트 렌더링 함수
     function renderChart(containerId, canvasId, checkboxGroupName, sourceData) {
         const resultBox = document.getElementById(containerId);
         if (!resultBox) return;
@@ -154,26 +163,68 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderTable(containerId, headers, data) {
+    // 테이블 렌더링 함수
+    function renderTable(containerId, headers, data, isClickable) {
         const container = document.getElementById(containerId);
         let tableHTML = '<table><thead><tr>';
         headers.forEach(header => tableHTML += `<th>${header.title}</th>`);
         tableHTML += '</tr></thead><tbody>';
         data.forEach(item => {
-            tableHTML += '<tr>';
+            const clickableClass = isClickable ? 'class="clickable-row"' : '';
+            const dataAttribute = isClickable ? `data-brand-name="${item.pestiBrandName}"` : '';
+            tableHTML += `<tr ${clickableClass} ${dataAttribute}>`;
             headers.forEach(header => tableHTML += `<td>${item[header.key] || '-'}</td>`);
             tableHTML += '</tr>';
         });
         tableHTML += '</tbody></table>';
         container.innerHTML = tableHTML;
+
+        if (isClickable) {
+            document.querySelectorAll(`#${containerId} .clickable-row`).forEach(row => {
+                row.addEventListener('click', handlePrescriptionQuery);
+            });
+        }
     }
 
+    // 상세 처방전을 조회하는 새로운 함수
+    async function handlePrescriptionQuery(event) {
+        const row = event.currentTarget;
+        const brandName = row.dataset.brandName;
+        if (!brandName) return;
+
+        commonParams.agchmNm = brandName;
+        const url = `${BASE_URL}/adwTotal?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&dipCd=${commonParams.dipCd}&sprayYmd=${commonParams.sprayYmd}&pestiBrandName=${encodeURIComponent(commonParams.agchmNm)}`;
+
+        const prescriptionContainer = document.getElementById('prescription-container');
+        const resultBox = document.getElementById('prescription-result');
+        resultBox.innerHTML = '<p>상세 처방전을 조회 중입니다...</p>';
+        prescriptionContainer.classList.remove('hidden');
+
+        try {
+            const responseData = await fetchData(url);
+            let dataObject = responseData && Array.isArray(responseData) ? responseData[0] : responseData;
+
+            if (dataObject) {
+                prscPesticideData = dataObject;
+                resultBox.innerHTML = `<div class="prescription-card"><p>${prscPesticideData.prscCn.replace(/\n/g, '<br>')}</p></div>`;
+                document.getElementById('excel-prescription').disabled = false;
+            } else {
+                resultBox.innerHTML = '<p>조회된 처방 내용이 없습니다.</p>';
+                prscPesticideData = {};
+            }
+        } catch (error) {
+            resultBox.innerText = '데이터 조회 실패: ' + error.message;
+        }
+    }
+
+    // 공통 API 호출 함수
     async function fetchData(url) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`서버 응답 오류 (${response.status})`);
         return await response.json();
     }
 
+    // 앱을 초기화하고 모든 이벤트 리스너를 설정하는 메인 함수
     async function initializeApp() {
         await loadPesticideInfo();
 
@@ -194,10 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-step1').addEventListener('click', async () => {
             const selectedLocation = document.getElementById('location-select').value;
             const [latitude, longitude] = selectedLocation.split(',');
-
             commonParams.latitude = parseFloat(latitude).toFixed(4);
             commonParams.longitude = parseFloat(longitude).toFixed(4);
-
             const date = document.getElementById('weather-date').value.replace(/-/g, '');
             const beginTime = document.getElementById('begin-time').value.replace(':', '') + '00';
             const untilTime = document.getElementById('until-time').value.replace(':', '') + '00';
@@ -260,29 +309,26 @@ document.addEventListener('DOMContentLoaded', () => {
             commonParams.sprayYmd = document.getElementById('spray-date').value.replace(/-/g, '');
             const pestiBrandName = document.getElementById('agchm-select').value;
             const url = `${BASE_URL}/agchm?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&dipCd=${commonParams.dipCd}&sprayYmd=${commonParams.sprayYmd}&pestiBrandName=${encodeURIComponent(pestiBrandName)}`;
-
+            document.getElementById('prescription-container').classList.add('hidden');
             try {
                 const responseData = await fetchData(url);
                 const resultBox = document.getElementById('result-step4');
                 let dataObject = responseData && Array.isArray(responseData) ? responseData[0] : responseData;
-
-                if (dataObject && typeof dataObject === 'object') {
+                if (dataObject) {
                     rcmdPesticideData = dataObject;
                     resultBox.innerHTML = `
                         <p><strong>농약살포지수:</strong> <span class="spray-index">${rcmdPesticideData.agchmSprayIdex || 'N/A'}</span></p>
+                        <p>아래 목록에서 농약 이름을 클릭하여 상세 처방전을 확인하세요.</p>
                         <div id="rcmd-table-container"></div>
                     `;
-
                     if (rcmdPesticideData.agchmSprayRcmdtnList && Array.isArray(rcmdPesticideData.agchmSprayRcmdtnList)) {
                         const headers = Object.keys(nameMappings.rcmdPesticide).map(key => ({ title: nameMappings.rcmdPesticide[key], key: key }));
-                        renderTable('rcmd-table-container', headers, rcmdPesticideData.agchmSprayRcmdtnList);
+                        renderTable('rcmd-table-container', headers, rcmdPesticideData.agchmSprayRcmdtnList, true);
                         document.getElementById('excel-step4').disabled = false;
-                        document.getElementById('excel-step4').style.display = 'block';
                     } else {
                         document.getElementById('rcmd-table-container').innerHTML = "<p>추천된 농약 목록이 없습니다.</p>";
                         document.getElementById('excel-step4').disabled = true;
                     }
-                    document.getElementById('step-5').classList.remove('hidden');
                 } else {
                     resultBox.innerHTML = '<p>추천 농약 정보를 불러올 수 없습니다.</p>';
                     rcmdPesticideData = {};
@@ -291,7 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('result-step4').innerText = '데이터 조회 실패: ' + error.message;
             }
         });
-
         document.getElementById('excel-step4').addEventListener('click', () => {
             if (rcmdPesticideData && rcmdPesticideData.agchmSprayRcmdtnList) {
                 downloadExcel(rcmdPesticideData.agchmSprayRcmdtnList, 'recommended_pesticide.xlsx', nameMappings.rcmdPesticide)
@@ -300,37 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // ★★★ 단계 5: 상세 처방전 조회 (수정된 부분) ★★★
-        document.getElementById('btn-step5').addEventListener('click', async () => {
-            commonParams.agchmNm = document.getElementById('agchm-select').value;
-            const url = `${BASE_URL}/adwTotal?apiKey=${API_KEY}&latitude=${commonParams.latitude}&longitude=${commonParams.longitude}&dipCd=${commonParams.dipCd}&sprayYmd=${commonParams.sprayYmd}&pestiBrandName=${encodeURIComponent(commonParams.agchmNm)}`;
-            try {
-                const responseData = await fetchData(url);
-                const resultBox = document.getElementById('result-step5');
-
-                // API 응답이 배열 또는 객체일 경우 모두 처리
-                let dataObject = null;
-                if (Array.isArray(responseData) && responseData.length > 0) {
-                    dataObject = responseData[0];
-                } else if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
-                    dataObject = responseData;
-                }
-
-                if (dataObject) {
-                    prscPesticideData = dataObject;
-                    // 새로운 응답 구조에 맞춰 HTML 생성
-                    resultBox.innerHTML = `<div class="prescription-card"><p>${prscPesticideData.prscCn.replace(/\n/g, '<br>')}</p></div>`;
-                    document.getElementById('excel-step5').disabled = false;
-                } else {
-                    resultBox.innerHTML = '<p>조회된 처방 내용이 없습니다.</p>';
-                    prscPesticideData = {};
-                }
-            } catch (error) {
-                resultBox.innerText = '데이터 조회 실패: ' + error.message;
-            }
-        });
-
-        document.getElementById('excel-step5').addEventListener('click', () => {
+        document.getElementById('excel-prescription').addEventListener('click', () => {
             if (prscPesticideData && prscPesticideData.prscCn) {
                 downloadExcel(prscPesticideData, 'pesticide_prescription.xlsx', nameMappings.prscPesticide);
             } else {
@@ -339,6 +354,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 앱 초기화 함수를 호출하여 전체 프로세스 시작
     initializeApp();
 });
